@@ -26,6 +26,9 @@ version and that version is used.
 [lein-sub](https://github.com/kumarshantanu/lein-sub)
 : execute tasks on sub-projects
 
+[Leiningen Plugins Wiki](https://github.com/technomancy/leiningen/wiki/Plugins)
+: comprehensive list of plugins
+
 ## License
 
 Copyright © 2012 Hugo Duncan
