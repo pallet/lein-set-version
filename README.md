@@ -5,7 +5,7 @@ project version.
 
 ## Usage
 
-Put `[lein-set-version "0.1.0"]` into the `:plugins` vector of your `:user`
+Put `[lein-set-version "0.1.1"]` into the `:plugins` vector of your `:user`
 profile.
 
 For example, to update the version of your project to 1.0.0
@@ -25,6 +25,9 @@ version and that version is used.
 
 [lein-sub](https://github.com/kumarshantanu/lein-sub)
 : execute tasks on sub-projects
+
+[Leiningen Plugins Wiki](https://github.com/technomancy/leiningen/wiki/Plugins)
+: comprehensive list of plugins
 
 ## License
 
