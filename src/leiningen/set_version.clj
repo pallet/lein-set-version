@@ -1,6 +1,8 @@
 (ns leiningen.set-version
   (:require
-   [clojure.string :as string]))
+   [clojure.string :as string])
+  (:use
+   [clojure.java.io :only [file]]))
 
 ;;; enable subproject dependency updates
 (def ^:private project-versions (atom []))
@@ -72,5 +74,6 @@ current version."
 (defn set-version
   "Update a project to the specified version."
   [project & [version]]
-  (spit "project.clj"
-        (update-version project version (slurp "project.clj"))))
+  (let [project-file (file (:root project) "project.clj")]
+    (spit project-file
+     (update-version project version (slurp project-file)))))
