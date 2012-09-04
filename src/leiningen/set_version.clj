@@ -27,8 +27,9 @@
         matcher (.matcher replace-pattern prj-str)]
     (when-not (re-find search-pattern prj-str)
       (throw
-       (RuntimeException.
-        (format "Could not find %s in project.clj" search-string))))
+       (ex-info
+        (str "Could not find " search-string " in project.clj")
+        {:exit-code 1})))
     (.replaceFirst matcher new-version-string)))
 
 (defn update-dependency-version
@@ -54,26 +55,90 @@ current version."
   (let [v (:version project)
         w (string/replace v "-SNAPSHOT" "")]
     (if (= v w)
-      (throw (RuntimeException.
-              (str "Could not determine default version for " v)))
+      (throw
+       (ex-info
+        (str "Could not determine default version for " v)
+        {:exit-code 1}))
       w)))
+
 
 (defn update-version
   "Calculate new project string with the specified version."
-  [project version prj-str]
-  (let [version (or version (default-version project))
-        updated-prj (reduce
+  [project new-version prj-str]
+  (let [updated-prj (reduce
                      (fn [prj-str depedency]
                        (update-dependency-version
-                        project version depedency prj-str))
-                     (update-project-version project version prj-str)
+                        project new-version depedency prj-str))
+                     (update-project-version project new-version prj-str)
                      @project-versions)]
     (swap! project-versions conj (select-keys project [:name :group :version]))
     updated-prj))
 
+(defn dec-string [^String digits]
+  (let [n (dec (read-string digits))]
+    (when-not (neg? n) (pr-str n))))
+
+(defn infer-previous-version
+  [{:keys [version]}]
+  (let [version (string/replace version "-SNAPSHOT" "")
+        components (string/split version #"\.")
+        last-component (dec-string (last components))]
+    (if last-component
+      (string/join
+       "." (conj (vec (butlast components)) last-component))
+      (throw
+       (ex-info
+        (str "Don't know how to infer previous version from " version)
+        {:exit-code 1})))))
+
+(defn version-as-regex
+  [version]
+  (re-pattern (string/replace version "." "\\.")))
+
+(defn update-file-version
+  "Calculate new file string with the specified replacements."
+  [project new-version
+   {:keys [search-regex replace-regex no-snapshot previous-version]
+    :as update}
+   file-str]
+  (if (or (not no-snapshot) (not (.endsWith new-version "-SNAPSHOT")))
+    (let [version-regex (re-pattern
+                         (version-as-regex
+                          (if no-snapshot
+                            (or previous-version
+                                (infer-previous-version project))
+                            (:version project))))
+          replace-regex (or replace-regex version-regex)
+          search-regex (or search-regex version-regex)]
+      (loop [file-str file-str position 0]
+        (let [matcher (re-matcher search-regex file-str)]
+          (if (and (< position (count file-str)) (.find matcher position))
+            (let [matched (.group matcher)]
+              (recur (.replaceFirst
+                      matcher
+                      (string/replace matched replace-regex new-version))
+                     (.end matcher)))
+            file-str))))
+    file-str))
+
 (defn set-version
   "Update a project to the specified version."
-  [project & [version]]
-  (let [project-file (file (:root project) "project.clj")]
+  [project & [new-version & args]]
+  (let [options (apply hash-map args)
+        options (zipmap (map read-string (keys options)) (vals options))
+        new-version (or new-version (default-version project))
+        project-file (file (:root project) "project.clj")
+        {:keys [updates] :as config} (:set-version project)]
     (spit project-file
-     (update-version project version (slurp project-file)))))
+          (update-version project new-version (slurp project-file)))
+    (doseq [{:keys [path] :as update} updates
+            :let [file-to-update (file (:root project) path)]]
+      (if (.canRead file-to-update)
+        (spit file-to-update
+              (update-file-version
+               project new-version (merge update options)
+               (slurp file-to-update)))
+        (throw
+         (ex-info
+          (str "Could not read file " (.getAbsolutePath file-to-update))
+          {:exit-code 1}))))))

@@ -1,7 +1,9 @@
 (ns leiningen.set-version-test
   (:use
    clojure.test
-   [leiningen.set-version :only [update-version]]))
+   [leiningen.set-version
+    :only [default-version infer-previous-version update-version
+           update-file-version]]))
 
 (deftest version-test
   (testing "simple case"
@@ -47,14 +49,45 @@
             "0.2.0"
             (str "(defproject zzz \"0.1.0-SNAPSHOT\"\n:description \"me\" "
                  ":dependencies [[xxx \"0.1.0-SNAPSHOT\"]\n"
-                 "               [yyy \"0.1.0-SNAPSHOT\"]])")))))
+                 "               [yyy \"0.1.0-SNAPSHOT\"]])"))))))
+
+(deftest default-version-test
   (testing "default version"
-    (is (= "(defproject xxx \"0.2.0\"\n:description \"me\")"
-           (update-version
-            {:name "xxx" :group "xxx" :version "0.2.0-SNAPSHOT"} nil
-            "(defproject xxx \"0.2.0-SNAPSHOT\"\n:description \"me\")"))))
+    (is (= "0.2.0" (default-version {:version "0.2.0-SNAPSHOT"}))))
   (testing "no default version"
+    (is (thrown? RuntimeException (default-version {:version "0.2.0"})))))
+
+(deftest infer-previous-version-test
+  (testing "infer from non snapshot version"
+    (is (= "0.2.0" (infer-previous-version {:version "0.2.1"}))))
+  (testing "infer from 2 component non snapshot version"
+    (is (= "0.1" (infer-previous-version {:version "0.2"}))))
+  (testing "infer from snapshot version"
+    (is (= "0.2.0" (infer-previous-version {:version "0.2.1-SNAPSHOT"}))))
+  (testing "no infer-previous version"
     (is (thrown? RuntimeException
-           (update-version
-            {:name "xxx" :group "xxx" :version "0.2.0"} nil
-            "(defproject xxx \"0.2.0\"\n:description \"me\")")))))
+                 (infer-previous-version {:version "0.2.0"})))))
+
+(deftest update-file-version-test
+  (testing "defaults"
+    (is (= "some text referring to 0.2.1"
+           (update-file-version
+            {:name "xxx" :group "xxx" :version "0.2.1-SNAPSHOT"}
+            "0.2.1"
+            {}
+            "some text referring to 0.2.1-SNAPSHOT"))))
+  (testing "explicit search regex"
+    (is (= "some text referring to 0.2.1"
+           (update-file-version
+            {:name "xxx" :group "xxx" :version "0.2.1-SNAPSHOT"}
+            "0.2.1"
+            {:search-regex #"referring to \d+\.\d+\.\d+(-SNAPSHOT)?"}
+            "some text referring to 0.2.1-SNAPSHOT"))))
+  (testing "explicit no-snapshot"
+    (is (= "some text referring to 0.2.1"
+           (update-file-version
+            {:name "xxx" :group "xxx" :version "0.2.1-SNAPSHOT"}
+            "0.2.1"
+            {:search-regex #"referring to \d+\.\d+\.\d+(-SNAPSHOT)?"
+             :no-snapshot true}
+            "some text referring to 0.2.0")))))
