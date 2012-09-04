@@ -2,13 +2,14 @@
 
 # release lein-set-version
 
-if [[ $# -lt 2 ]]; then
-  echo "usage: $(basename $0) previous-version new-version" >&2
+if [[ $# -lt 3 ]]; then
+  echo "usage: $(basename $0) previous-version new-version next-version" >&2
   exit 1
 fi
 
 previous_version=$1
 version=$2
+next_version=$3
 
 echo ""
 echo "Start release of $version, previous version is $previous_version"
@@ -40,4 +41,7 @@ echo -n "commiting project.clj, release notes and readme.  enter to continue:" \
 && echo -n "Peform release.  enter to continue:" && read x \
 && lein do clean, test, deploy clojars \
 && git flow release finish $version \
-&& echo "Now push to github. Don't forget the tags!"
+&& echo "Now push to github. Don't forget the tags!" \
+&& lein set-version ${next_version} \
+&& git add project.clj \
+&& git commit -m "Updated version for next release cycle"
