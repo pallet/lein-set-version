@@ -18,7 +18,8 @@ echo ""
 lein do clean, test && \
 git flow release start $version || exit 1
 
-lein set-version ${version} || { echo "set version failed" >2 ; exit 1; }
+lein with-profile release set-version ${version} :previous-version ${previous_version} \
+  || { echo "set version failed" >2 ; exit 1; }
 
 echo ""
 echo ""
