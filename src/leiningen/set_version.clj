@@ -2,7 +2,8 @@
   (:require
    [clojure.string :as string])
   (:use
-   [clojure.java.io :only [file]]))
+   [clojure.java.io :only [file]]
+   [leiningen.core.main :only [debug info]]))
 
 ;;; enable subproject dependency updates
 (def ^:private project-versions (atom []))
@@ -110,15 +111,19 @@ current version."
                             (:version project))))
           replace-regex (or replace-regex version-regex)
           search-regex (or search-regex version-regex)]
-      (loop [file-str file-str position 0]
+      (debug "Searching with " search-regex)
+      (loop [new-str "" file-str file-str]
         (let [matcher (re-matcher search-regex file-str)]
-          (if (and (< position (count file-str)) (.find matcher position))
+          (if (.find matcher)
             (let [matched (.group matcher)]
-              (recur (.replaceFirst
-                      matcher
-                      (string/replace matched replace-regex new-version))
-                     (.end matcher)))
-            file-str))))
+              (debug "Checking matched " matched)
+              (let [n (.end matcher)
+                    replacement (string/replace
+                                 matched replace-regex new-version)
+                    s (.replaceFirst matcher replacement)
+                    nn (- (+ n (count replacement)) (count matched))]
+                (recur (str new-str (subs s 0 nn)) (subs s nn))))
+            (str new-str file-str)))))
     file-str))
 
 (defn set-version
@@ -133,6 +138,7 @@ current version."
           (update-version project new-version (slurp project-file)))
     (doseq [{:keys [path] :as update} updates
             :let [file-to-update (file (:root project) path)]]
+      (debug "Updating" path)
       (if (.canRead file-to-update)
         (spit file-to-update
               (update-file-version
