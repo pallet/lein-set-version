@@ -83,6 +83,14 @@
             "0.2.1"
             {}
             "some text referring to 0.2.1-SNAPSHOT and ..."))))
+  (testing "repeated text"
+    (is (= "some text referring to 0.2.1 and referring to 0.2.1"
+           (update-file-version
+            {:name "xxx" :group "xxx" :version "0.2.1-SNAPSHOT"}
+            "0.2.1"
+            {}
+            (str "some text referring to 0.2.1-SNAPSHOT "
+                 "and referring to 0.2.1-SNAPSHOT")))))
   (testing "explicit search regex"
     (is (= "some text referring to 0.2.1"
            (update-file-version
