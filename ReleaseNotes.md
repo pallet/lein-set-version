@@ -1,5 +1,13 @@
 # Release Notes
 
+## 0.2.1
+
+- Fix update-file-version for case of multiple matches in file
+  When the search matched more than once there was an infinite loop.
+
+  Fixes #2
+
+
 ## 0.2.0
 
 - Allow update of files in addition to project.clj
