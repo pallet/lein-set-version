@@ -1,4 +1,4 @@
-(defproject lein-set-version "0.3.0"
+(defproject lein-set-version "0.3.1-SNAPSHOT"
   :description "A Leiningen plugin to update the project version."
   :url "https://github.com/pallet/lein-set-version"
   :scm {:url "git@github.com:pallet/lein-set-version.git"}
