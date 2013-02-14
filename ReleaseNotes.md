@@ -1,5 +1,11 @@
 # Release Notes
 
+## 0.3.0
+
+- Add a dry-run mode
+  In dry-run mode, no files are changed, but chnages to be made are
+  displayed.
+
 ## 0.2.1
 
 - Fix update-file-version for case of multiple matches in file
