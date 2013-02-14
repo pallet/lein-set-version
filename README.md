@@ -53,6 +53,11 @@ this using the `:previous-version` keyword.
 
     lein set-version 1.1.0 :previous-version 1.0.2
 
+## Dry Run Mode
+
+You can pass `:dry-run true` to run without changing any files.  In this mode
+the changes to be made are displayed.
+
 ## See also
 
 [lein-release](https://github.com/relaynetwork/lein-release)

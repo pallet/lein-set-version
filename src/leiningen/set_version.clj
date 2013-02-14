@@ -3,7 +3,15 @@
    [clojure.string :as string])
   (:use
    [clojure.java.io :only [file]]
-   [leiningen.core.main :only [debug info]]))
+   [leiningen.core.main :only [info] :as main]))
+
+;;; Debug output on dry-run
+(def dry-run false)
+
+(defn debug [& args]
+  (if dry-run
+    (apply println args)
+    (apply main/debug args)))
 
 ;;; enable subproject dependency updates
 (def ^:private project-versions (atom []))
@@ -21,16 +29,20 @@
   (let [project-symbol (project-symbol-string project)
         version-string (:version project)
         search-string (format
-                       "(?s)(?m)\\(defproject\\s+%s\\s+\"%s\""
+                       "(?s)(?m)\\(defproject\\s+%s\\s+\"(%s)\""
                        project-symbol version-string)
         search-pattern (re-pattern search-string)
+        search-matcher (.matcher search-pattern prj-str)
+        matched (re-find search-matcher)
         replace-pattern (re-pattern version-string)
         matcher (.matcher replace-pattern prj-str)]
-    (when-not (re-find search-pattern prj-str)
+    (when-not matched
       (throw
        (ex-info
         (str "Could not find " search-string " in project.clj")
         {:exit-code 1})))
+    (debug "Replacing" (second matched) "in" (first matched)
+           "with" new-version-string)
     (.replaceFirst matcher new-version-string)))
 
 (defn update-dependency-version
@@ -43,10 +55,14 @@
                        project-symbol version-string)
         search-pattern (re-pattern search-string)
         replace-pattern (re-pattern version-string)
-        matcher (.matcher search-pattern prj-str)]
-    (if-let [dep (re-find search-pattern prj-str)]
-      (.replaceFirst
-       matcher (.replaceAll dep version-string new-version-string))
+        matcher (.matcher search-pattern prj-str)
+        matched (re-find search-pattern prj-str)]
+    (if matched
+      (do
+        (debug
+         "Replacing" version-string "in" matched "with" new-version-string)
+        (.replaceFirst
+         matcher (.replaceAll matched version-string new-version-string)))
       prj-str)))
 
 (defn default-version
@@ -66,6 +82,7 @@ current version."
 (defn update-version
   "Calculate new project string with the specified version."
   [project new-version prj-str]
+  (debug "Updating project.clj")
   (let [updated-prj (reduce
                      (fn [prj-str depedency]
                        (update-dependency-version
@@ -111,17 +128,18 @@ current version."
                             (:version project))))
           replace-regex (or replace-regex version-regex)
           search-regex (or search-regex version-regex)]
-      (debug "Searching with " search-regex)
+      (debug "Searching with" search-regex)
       (loop [new-str "" file-str file-str]
         (let [matcher (re-matcher search-regex file-str)]
           (if (.find matcher)
             (let [matched (.group matcher)]
-              (debug "Checking matched " matched)
+              (debug "Checking matched" matched)
               (let [n (.end matcher)
                     replacement (string/replace
                                  matched replace-regex new-version)
                     s (.replaceFirst matcher replacement)
                     nn (- (+ n (count replacement)) (count matched))]
+                (debug "Replacing" matched "with" replacement)
                 (recur (str new-str (subs s 0 nn)) (subs s nn))))
             (str new-str file-str)))))
     file-str))
@@ -134,16 +152,22 @@ current version."
         new-version (or new-version (default-version project))
         project-file (file (:root project) "project.clj")
         {:keys [updates] :as config} (:set-version project)]
-    (spit project-file
-          (update-version project new-version (slurp project-file)))
+    (debug "dry-run" (:dry-run options))
+    (alter-var-root #'dry-run (constantly (:dry-run options)))
+    (when dry-run
+      (debug "Dry Run - not changing any files"))
+    (let [new-project (update-version project new-version (slurp project-file))]
+      (when-not dry-run
+        (spit project-file new-project)))
     (doseq [{:keys [path] :as update} updates
             :let [file-to-update (file (:root project) path)]]
       (debug "Updating" path)
       (if (.canRead file-to-update)
-        (spit file-to-update
-              (update-file-version
-               project new-version (merge update options)
-               (slurp file-to-update)))
+        (let [new-content (update-file-version
+                           project new-version (merge update options)
+                           (slurp file-to-update))]
+          (when-not dry-run
+            (spit file-to-update new-content)))
         (throw
          (ex-info
           (str "Could not read file " (.getAbsolutePath file-to-update))
