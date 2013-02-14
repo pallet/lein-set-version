@@ -5,7 +5,7 @@ project version.
 
 ## Usage
 
-Put `[lein-set-version "0.2.1"]` into the `:plugins` vector of your `:user`
+Put `[lein-set-version "0.3.0"]` into the `:plugins` vector of your `:user`
 profile.
 
 For example, to update the version of your project to 1.0.0
