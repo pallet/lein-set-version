@@ -5,7 +5,7 @@ project version.
 
 ## Usage
 
-Put `[lein-set-version "0.2.1"]` into the `:plugins` vector of your `:user`
+Put `[lein-set-version "0.3.0"]` into the `:plugins` vector of your `:user`
 profile.
 
 For example, to update the version of your project to 1.0.0
@@ -52,6 +52,11 @@ Note that the previous version may need to be supplied on the command line when
 this using the `:previous-version` keyword.
 
     lein set-version 1.1.0 :previous-version 1.0.2
+
+## Dry Run Mode
+
+You can pass `:dry-run true` to run without changing any files.  In this mode
+the changes to be made are displayed.
 
 ## See also
 
