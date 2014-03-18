@@ -24,7 +24,7 @@ if echo $branch | egrep '^release/.*' > /dev/null; then
   echo "Pushing tags"
   git push github --tags > /dev/null 2>&1 || exit 1
   echo "Updating version"
-  lein set-version :point || exit 1
+  lein2 set-version :point || exit 1
   echo "Commiting version change"
   git add -u && \
   git commit -m "Updated version for next release cycle" && \
