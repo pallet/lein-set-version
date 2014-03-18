@@ -1,5 +1,3 @@
-# Release Notes
-
 ## 0.3.0
 
 - Add a dry-run mode
