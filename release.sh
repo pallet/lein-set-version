@@ -53,5 +53,5 @@ echo -n "commiting project.clj, release notes and readme.  enter to continue:" \
 && echo -n "Wait for travis to push to master" \
 && read x \
 && git checkout master \
-&& git fetch \
+&& git pull \
 && lein deploy clojars
