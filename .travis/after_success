@@ -27,6 +27,8 @@ if echo $branch | egrep '^release/.*' > /dev/null; then
   lein2 set-version :point || exit 1
   echo "Commiting version change"
   git add -u && \
+  git config --global user.email "hugo@palletops.com" && \
+  git config --global user.name "Hugo Duncan" && \
   git commit -m "Updated version for next release cycle" && \
   echo "Pushing to develop" && \
   git push github HEAD:develop > /dev/null 2>&1 || exit 1
