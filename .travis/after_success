@@ -16,15 +16,18 @@ echo branch is "$branch", release is $release
 if echo $branch | egrep '^release/.*' > /dev/null; then
   echo "Adding remote"
   git remote add github \
-    https://pbors:${GH_TOKEN}@github.com/pallet/clj-jclouds.git
+    https://pbors:${GH_TOKEN}@github.com/pallet/lein-set-version.git
   echo "Pushing to master"
-  git push github HEAD:master > /dev/null 2>&1;
+  git push github HEAD:master > /dev/null 2>&1 || exit 1
   echo "Tagging"
-  git tag $release
+  git tag $release || exit 1
   echo "Pushing tags"
-  git push github --tags > /dev/null 2>&1;
+  git push github --tags > /dev/null 2>&1 || exit 1
   echo "Updating version"
-  lein set-version :point
-  echo "Pushing to develop"
-  git push github HEAD:develop > /dev/null 2>&1;
+  lein set-version :point || exit 1
+  echo "Commiting version change"
+  git add -u && \
+  git commit -m "Updated version for next release cycle" && \
+  echo "Pushing to develop" && \
+  git push github HEAD:develop > /dev/null 2>&1 || exit 1
 fi
