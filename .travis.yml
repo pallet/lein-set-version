@@ -1,9 +1,8 @@
 language: clojure
 lein: lein2
-before_script:
 script: lein2 test
 env:
   global:
-    secure: AxNXAOwz7r/ITyNzfdLRPizqEvx30BsgSSG+oG7f0imWa7fWpCC1ANSfheroBfx8dXsgrw6be57r2oH9IiWtD1iLdpOn4ppv1A2yugFBG88C6XokH2iI6nbSNfLqlChXrmlCypJJbxc0poRlFxqN2/tv3NiEJ+0OTvkA+rsJQFk=
+    secure: gJXJmJTN5xJv3pBBvwbSYLjJPwakAXXkkxAHPaqUSngEWCtNaNj5aeRC0Jjje4Vx5jV6S7rfsO77h1WNMZVR2iNng60p5yQjNGwkLaVIF8Lu6QridM3D+LM285E2NJ450OSa4OKOCxEA50akGNPe3QR38aDVl9ZvFSJupyWFRI8=
 after_success:
 - bash .travis/after_success
