@@ -1,9 +1,10 @@
 (ns leiningen.set-version
   (:require
    [clojure.string :as string])
-  (:use
-   [clojure.java.io :only [file]]
-   [leiningen.core.main :only [info] :as main]))
+  (:require
+   [clojure.edn :as edn]
+   [clojure.java.io :refer [file]]
+   [leiningen.core.main :refer [info] :as main]))
 
 ;;; Debug output on dry-run
 (def dry-run false)
@@ -65,19 +66,95 @@
          matcher (.replaceAll matched version-string new-version-string)))
       prj-str)))
 
+(def version-regex
+  #"(?i)([0-9]+(?:\.[0-9]+)*)(?:-(ALPHA|BETA|RC)(\.?)([0-9]+))?(-SNAPSHOT)?")
+
+(defn version-components
+  "Return a map of version components."
+  [version]
+  {:pre [(string? version)]}
+  (if-let [[_ base pre pre-separator pre-ver snapshot]
+           (re-find version-regex version)]
+    {:base (->> (string/split base #"\.")
+                (map edn/read-string))
+     :pre pre
+     :pre-separator pre-separator
+     :pre-ver pre-ver
+     :snapshot (boolean snapshot)}
+    (throw
+     (ex-info
+      (str "Unrecognised version format " version)
+      {:exit-code 1}))))
+
+(defn pr-str-components
+  [{:keys [base pre pre-separator pre-ver snapshot]}]
+  (str (string/join "." base)
+       (if pre (str "-" pre pre-separator pre-ver))
+       (if snapshot "-SNAPSHOT")))
+
+(def version-index
+  {:point 1
+   :minor 2
+   :major 3})
+
+(defn next-version
+  [base type-kw]
+  (let [n (type-kw version-index)
+        prefix (reverse (drop n (reverse base)))
+        v (first (drop (dec n) (reverse base)))]
+    (vec (concat prefix [(inc v)] (repeat (dec n) 0)))))
+
+(defn next-release [components type-kw]
+  {:pre [(:snapshot components)]}
+  (case type-kw
+    :point (assoc components :snapshot false)
+    (-> components
+        (update-in [:base] next-version type-kw)
+        (assoc :snapshot false))))
+
+(defn next-snapshot [{:keys [base pre snapshot] :as components} type-kw]
+  {:pre [(not snapshot)]}
+  (if pre
+    (-> components
+        (dissoc :pre :pre-separator :pre-ver)
+        (assoc :snapshot true))
+    (-> components
+        (update-in [:base] next-version type-kw)
+        (assoc :snapshot true))))
+
+(defn kw-version
+  "Calculate a target version according to a keyword argument."
+  [project type-kw]
+  (when-not (#{:major :minor :point} type-kw)
+    (throw (ex-info (str "Unknown keyword argument " type-kw ".  "
+                         "Expecting one of :major, :minor or :point."))))
+  (let [current (:version project)
+        components (version-components current)
+        new-components (if (:snapshot components)
+                         (next-release components type-kw)
+                         (next-snapshot components type-kw))
+        new-version (pr-str-components new-components)]
+
+        (if (= current new-version)
+      (throw
+       (ex-info
+        (str "Could not determine default next version for " current)
+        {:exit-code 1}))
+      new-version)))
+
 (defn default-version
   "Calculate a default target version by dropping any -SNAPSHOT in the
 current version."
   [project]
-  (let [v (:version project)
-        w (string/replace v "-SNAPSHOT" "")]
-    (if (= v w)
-      (throw
-       (ex-info
-        (str "Could not determine default version for " v)
-        {:exit-code 1}))
-      w)))
+  (kw-version project :point))
 
+(defn process-version
+  "Find a version based on the given version argument."
+  [project version]
+  (cond
+   (not version) (default-version project)
+   (.startsWith version ":") (kw-version project (keyword (subs version 1)))
+   :else version))
 
 (defn update-version
   "Calculate new project string with the specified version."
@@ -149,7 +226,7 @@ current version."
   [project & [new-version & args]]
   (let [options (apply hash-map args)
         options (zipmap (map read-string (keys options)) (vals options))
-        new-version (or new-version (default-version project))
+        new-version (process-version project new-version)
         project-file (file (:root project) "project.clj")
         {:keys [updates] :as config} (:set-version project)]
     (debug "dry-run" (:dry-run options))

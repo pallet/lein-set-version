@@ -2,8 +2,30 @@
   (:use
    clojure.test
    [leiningen.set-version
-    :only [default-version infer-previous-version update-version
-           update-file-version]]))
+    :only [default-version next-version infer-previous-version kw-version
+           update-version update-file-version version-components]]))
+
+(deftest version-components-test
+  (is (= {:base [1 0 1]
+          :pre nil :pre-separator nil :pre-ver nil
+          :snapshot false}
+         (version-components "1.0.1")))
+  (is (= {:base [1 0 1]
+          :pre nil :pre-separator nil :pre-ver nil
+          :snapshot true}
+         (version-components "1.0.1-SNAPSHOT")))
+  (is (= {:base [1 0 1]
+          :pre "ALPHA" :pre-separator "" :pre-ver "1"
+          :snapshot false}
+         (version-components "1.0.1-ALPHA1")))
+  (is (= {:base [1 0 1]
+          :pre "BETA" :pre-separator "." :pre-ver "1"
+          :snapshot false}
+         (version-components "1.0.1-BETA.1")))
+  (is (= {:base [1 0 1]
+          :pre "RC" :pre-separator "." :pre-ver "1"
+          :snapshot false}
+         (version-components "1.0.1-RC.1"))))
 
 (deftest version-test
   (testing "simple case"
@@ -52,10 +74,28 @@
                  "               [yyy \"0.1.0-SNAPSHOT\"]])"))))))
 
 (deftest default-version-test
-  (testing "default version"
+  (testing "default version as snapshot"
     (is (= "0.2.0" (default-version {:version "0.2.0-SNAPSHOT"}))))
-  (testing "no default version"
-    (is (thrown? RuntimeException (default-version {:version "0.2.0"})))))
+  (testing "default version, non-snapshot"
+    (is (= "0.2.1-SNAPSHOT" (default-version {:version "0.2.0"})))))
+
+(deftest next-version-test
+  (is (= [1 3 6] (next-version [1 3 5] :point)))
+  (is (= [1 4 0] (next-version [1 3 5] :minor)))
+  (is (= [2 0 0] (next-version [1 3 5] :major))))
+
+(deftest kw-version-test
+  (testing "kw version as snapshot"
+    (is (= "0.2.0" (kw-version {:version "0.2.0-SNAPSHOT"} :point)))
+    (is (= "0.3.0" (kw-version {:version "0.2.1-SNAPSHOT"} :minor)))
+    (is (= "1.0.0" (kw-version {:version "0.2.1-SNAPSHOT"} :major))))
+  (testing "kw version, non-snapshot"
+    (is (= "0.3.2-SNAPSHOT" (kw-version {:version "0.3.1"} :point)))
+    (is (= "0.4.0-SNAPSHOT" (kw-version {:version "0.3.1"} :minor)))
+    (is (= "1.0.0-SNAPSHOT" (kw-version {:version "0.3.1"} :major)))
+    (testing "following pre-release"
+      (is (= "0.3.1-SNAPSHOT"
+             (kw-version {:version "0.3.1-alpha.1"} :point))))))
 
 (deftest infer-previous-version-test
   (testing "infer from non snapshot version"
