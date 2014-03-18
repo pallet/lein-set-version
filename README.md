@@ -1,5 +1,7 @@
 # lein-set-version
 
+[![Build Status](https://travis-ci.org/pallet/lein-set-version.png?branch=develop)](https://travis-ci.org/pallet/lein-set-version)
+
 A [Leiningen](https://github.com/technomancy/leiningen) plugin to update the
 project version.
 

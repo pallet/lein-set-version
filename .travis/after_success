@@ -1,0 +1,30 @@
+#!/bin/bash
+
+# exit on error
+set -e
+
+# Find the branch and any release designation
+sha=$(git rev-parse HEAD)
+branch=$(git branch -v --no-abbrev  | \
+         fgrep "$sha" | \
+         grep -v detached | \
+         awk '{print $1}')
+release=$(echo $branch | sed -e 's|release/||')
+
+echo branch is "$branch", release is $release
+
+if echo $branch | egrep '^release/.*' > /dev/null; then
+  echo "Adding remote"
+  git remote add github \
+    https://pbors:${GH_TOKEN}@github.com/pallet/clj-jclouds.git
+  echo "Pushing to master"
+  git push github HEAD:master > /dev/null 2>&1;
+  echo "Tagging"
+  git tag $release
+  echo "Pushing tags"
+  git push github --tags > /dev/null 2>&1;
+  echo "Updating version"
+  lein set-version :point
+  echo "Pushing to develop"
+  git push github HEAD:develop > /dev/null 2>&1;
+fi
