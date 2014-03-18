@@ -1,3 +1,8 @@
+## 0.4.1
+
+- Remove use of clojure.edn
+  Allow usage with older versions of leiningen.
+
 ## 0.4.0
 
 - Add keyword arguments for version
