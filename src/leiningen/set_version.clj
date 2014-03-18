@@ -2,7 +2,6 @@
   (:require
    [clojure.string :as string])
   (:require
-   [clojure.edn :as edn]
    [clojure.java.io :refer [file]]
    [leiningen.core.main :refer [info] :as main]))
 
@@ -76,7 +75,7 @@
   (if-let [[_ base pre pre-separator pre-ver snapshot]
            (re-find version-regex version)]
     {:base (->> (string/split base #"\.")
-                (map edn/read-string))
+                (map #(Integer/parseInt %)))
      :pre pre
      :pre-separator pre-separator
      :pre-ver pre-ver
