@@ -1,3 +1,11 @@
+## 0.4.0
+
+- Add keyword arguments for version
+  The :point, :minor and :major keywords can now be used to specify which
+  part of the version number should be stepped.
+
+  The default version can now infer a snapshot version.
+
 ## 0.3.0
 
 - Add a dry-run mode
