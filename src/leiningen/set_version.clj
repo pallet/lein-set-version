@@ -126,7 +126,8 @@
   [project type-kw]
   (when-not (#{:major :minor :point} type-kw)
     (throw (ex-info (str "Unknown keyword argument " type-kw ".  "
-                         "Expecting one of :major, :minor or :point."))))
+                         "Expecting one of :major, :minor or :point.")
+                    {:exit-code 1})))
   (let [current (:version project)
         components (version-components current)
         new-components (if (:snapshot components)
